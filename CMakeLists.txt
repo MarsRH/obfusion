@@ -10,4 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)           # 引入 LLVM 的 CMake 辅助函数
 include(HandleLLVMOptions) # 自动处理 LLVM 编译选项
 
+# 设置库文件输出目录
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
 add_subdirectory(src)
