@@ -40,7 +40,7 @@ case "$mode" in
         clang -S -emit-llvm "-${optim_level}" "./programs/$input_file" -o "./programs/${base_name}.ll"
 
         # 调用PASS PLUGIN对目标IR进行优化
-        opt -load-pass-plugin ./build/lib/TestPassPlugin.so -passes=test-pass "./programs/${base_name}.ll" -o "./programs/${base_name}.bc"
+        opt -load-pass-plugin ./build/lib/TestPass.so -passes=test-pass,test-pass1 "./programs/${base_name}.ll" -o "./programs/${base_name}.bc"
 
         echo "Processing completed: ${base_name}.bc generated"
         ;;
