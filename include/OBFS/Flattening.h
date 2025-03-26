@@ -4,7 +4,8 @@
 
 namespace OBFS {
 
-class TestPass1 : public llvm::PassInfoMixin<TestPass1> {
+// 控制流平坦化
+class Flattening : public llvm::PassInfoMixin<Flattening> {
 public:
   llvm::PreservedAnalyses run(llvm::Function &F,
                              llvm::FunctionAnalysisManager &AM);

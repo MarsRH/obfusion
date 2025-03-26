@@ -4,6 +4,7 @@
 
 namespace OBFS {
 
+// 测试插件
 class TestPass : public llvm::PassInfoMixin<TestPass> {
 public:
   llvm::PreservedAnalyses run(llvm::Function &F,

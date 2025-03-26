@@ -1,10 +1,11 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "OBFS/TestPass.h"
-#include "OBFS/TestPass1.h"
+#include "OBFS/Flattening.h"
 
 using namespace llvm;
 
 // 注册插件（必须导出 C 接口）
+// 该函数会在插件加载时被调用 进行插件的注册
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo
 llvmGetPassPluginInfo() {
   return {
@@ -15,14 +16,17 @@ llvmGetPassPluginInfo() {
       PB.registerPipelineParsingCallback(
         [](StringRef Name, FunctionPassManager &FPM,
            ArrayRef<PassBuilder::PipelineElement>) {
-          if (Name == "test-pass") {
+          // 测试pass
+          if (Name == "test") {
             FPM.addPass(OBFS::TestPass());
             return true;
           }
-          if (Name == "test-pass1") {
-            FPM.addPass(OBFS::TestPass1());
+          // 控制流平坦化
+          if (Name == "flattening") {
+            FPM.addPass(OBFS::Flattening());
             return true;
           }
+          // Other passes go here.
           return false;
         });
     }
