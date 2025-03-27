@@ -14,4 +14,12 @@ inline void printFunctionName(llvm::Function &F) {
   llvm::errs() << "Processing function: " << F.getName() << "\n";
 }
 
+#define LOAD32H(x, y)                                                          \
+  {                                                                            \
+    (x) = ((uint32_t)((y)[0] & 0xFF) << 24) |                                  \
+          ((uint32_t)((y)[1] & 0xFF) << 16) |                                  \
+          ((uint32_t)((y)[2] & 0xFF) << 8) | ((uint32_t)((y)[3] & 0xFF) << 0); \
+  }
+
+
 } // namespace OBFS
