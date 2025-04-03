@@ -6,6 +6,8 @@
 #include "llvm/IR/Function.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <vector>
+
 // 公共命名空间
 namespace OBFS {
 
