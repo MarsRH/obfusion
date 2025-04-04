@@ -18,7 +18,6 @@ public:
                              llvm::FunctionAnalysisManager &AM);
   
   bool flatten(llvm::Function *f);
-  void fixStack(llvm::Function &F);
 
   // 使得该Pass在每次运行时都能被调用
   static bool isRequired() { return true; }
