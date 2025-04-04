@@ -29,7 +29,7 @@ case "$mode" in
         fi
         input_file=$1
         passes=${2:-"test"}  # 默认为test
-        optim_level=${3:-"O1"}  # 默认为O1优化
+        optim_level=${3:-"O0"}  # 默认为O1优化
         
         # 获取不带路径和后缀的文件名
         filename=$(basename "$input_file")
