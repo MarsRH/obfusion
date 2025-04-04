@@ -1,14 +1,23 @@
 #include "OBFS/Flattening.h"
+#include "llvm/Transforms/Scalar/Reg2Mem.h"
+#include "llvm/Transforms/Utils/LowerSwitch.h"
 
 using namespace llvm;
 using namespace OBFS;
 using std::vector;
 
-PreservedAnalyses Flattening::run(Function &F, FunctionAnalysisManager &) {
+PreservedAnalyses Flattening::run(Function &F, FunctionAnalysisManager &AM) {
   errs() << "[Flattening] Pass running on " << F.getName() << "\n";
   // errs() << "[Flattening] Original IR:\n";
   // F.print(errs());
+  RegToMemPass *reg = new RegToMemPass();
+  LowerSwitchPass *lower = new LowerSwitchPass();
+
+  lower->run(F, AM);
   if (flatten(&F)) {
+    
+    // Demote register and phi to memory
+    reg->run(F, AM);   // Remove phi nodes
     return PreservedAnalyses::none();
   }
   
@@ -82,7 +91,7 @@ bool Flattening::flatten(Function *f) {
   IRBuilder<> dispatchBuilder(loopEntry);
   LoadInst *load = dispatchBuilder.CreateLoad(switchVar->getAllocatedType(), switchVar, "switchVar");
   SwitchInst *switchI = dispatchBuilder.CreateSwitch(load, swDefault, origBB.size());
-  dispatchBuilder.CreateBr(swDefault);
+  // dispatchBuilder.CreateBr(swDefault);
 
   // 设置switchDefault块的终止指令
   IRBuilder<> defaultBuilder(swDefault);

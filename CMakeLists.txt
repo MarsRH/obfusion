@@ -13,6 +13,12 @@ include(HandleLLVMOptions) # 自动处理 LLVM 编译选项
 # 设置头文件目录
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+# Use LLVM's preprocessor definitions, include directories, and library search
+# paths.
+add_definitions(${LLVM_DEFINITIONS})
+include_directories(${LLVM_INCLUDE_DIRS})
+link_directories(${LLVM_LIBRARY_DIRS})
+
 # 设置库文件输出目录
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
