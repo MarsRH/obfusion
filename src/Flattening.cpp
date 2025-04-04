@@ -1,6 +1,4 @@
 #include "OBFS/Flattening.h"
-#include "llvm/Transforms/Scalar/Reg2Mem.h"
-#include "llvm/Transforms/Utils/LowerSwitch.h"
 
 using namespace llvm;
 using namespace OBFS;
@@ -8,16 +6,19 @@ using std::vector;
 
 PreservedAnalyses Flattening::run(Function &F, FunctionAnalysisManager &AM) {
   errs() << "[Flattening] Pass running on " << F.getName() << "\n";
+  // DEBUG: 打印原始IR
   // errs() << "[Flattening] Original IR:\n";
   // F.print(errs());
+
+  // 模块声明
   RegToMemPass *reg = new RegToMemPass();
   LowerSwitchPass *lower = new LowerSwitchPass();
 
+  // LowerSwitch
   lower->run(F, AM);
   if (flatten(&F)) {
-    
-    // Demote register and phi to memory
-    reg->run(F, AM);   // Remove phi nodes
+    // Remove phi nodes
+    reg->run(F, AM);   
     return PreservedAnalyses::none();
   }
   
@@ -26,13 +27,9 @@ PreservedAnalyses Flattening::run(Function &F, FunctionAnalysisManager &AM) {
 
 bool Flattening::flatten(Function *f) {
 
-  // SCRAMBLER
-  // char scrambling_key[16];
-  // get_bytes(scrambling_key, 16);
-  // END OF SCRAMBLER
-
   // 随机数种子
   srand(time(0));
+  int randNumCase = rand();
 
   // 获取函数的所有基本块
   errs() << "[Flattening] Before processing basic blocks\n";
@@ -83,8 +80,7 @@ bool Flattening::flatten(Function *f) {
   IRBuilder<> entryBuilder(&entryBB);
   AllocaInst *switchVar = entryBuilder.CreateAlloca(
     entryBuilder.getInt32Ty(), nullptr, "switchVar");
-  [[maybe_unused]] StoreInst *store = entryBuilder.CreateStore(
-    entryBuilder.getInt32(0), switchVar);
+  entryBuilder.CreateStore(entryBuilder.getInt32(randNumCase), switchVar);
   entryBuilder.CreateBr(loopEntry);
 
   // 创建调度块
@@ -101,7 +97,6 @@ bool Flattening::flatten(Function *f) {
   endBuilder.CreateBr(loopEntry);
 
   // 将原始基本块添加到switch指令中
-  int randNumCase = rand();
   for (BasicBlock *bb : origBB) {
     bb->moveBefore(loopEnd);
     switchI->addCase(dispatchBuilder.getInt32(randNumCase), bb);
@@ -137,10 +132,6 @@ bool Flattening::flatten(Function *f) {
         caseBuilder.CreateStore(cond, switchVar);
         caseBuilder.CreateBr(loopEnd);
         br->eraseFromParent();
-        // BranchInst::Create(bb->getTerminator()->getSuccessor(0), bb->getTerminator()->getSuccessor(1), cond, bb->getTerminator()->getIterator());
-        // 创建新的switch case
-        // switchI->addCase(numCaseTrue, bb->getTerminator()->getSuccessor(0));
-        // switchI->addCase(numCaseFalse, bb->getTerminator()->getSuccessor(1));
       
       // 如果是无条件跳转
       } else {
@@ -162,8 +153,11 @@ bool Flattening::flatten(Function *f) {
     }
   }
 
-  errs() << "[Flattening] Final IR After Flattening:\n";
-  f->print(errs());
+  // DEBUG: 打印最终的IR
+  // errs() << "[Flattening] Final IR After Flattening:\n";
+  // f->print(errs());
+  
+  errs() << "[Flattening] Flattening Done\n";
 
   return true;
 }
