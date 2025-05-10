@@ -1,6 +1,7 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "OBFS/TestPass.h"
 #include "OBFS/Flattening.h"
+#include "OBFS/BogusCFG.h"
 
 using namespace llvm;
 
@@ -24,6 +25,11 @@ llvmGetPassPluginInfo() {
           // 控制流平坦化
           if (Name == "flattening") {
             FPM.addPass(OBFS::Flattening());
+            return true;
+          }
+          // 虚假控制流
+          if (Name == "bogusCFG") {
+            FPM.addPass(OBFS::BogusCFG());
             return true;
           }
           // Other passes go here.
