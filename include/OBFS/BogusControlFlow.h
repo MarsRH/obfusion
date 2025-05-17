@@ -2,16 +2,21 @@
 
 #include "OBFS/Common.h"
 #include "llvm/IR/Instructions.h"
-
+#include "llvm/Transforms/Utils/Local.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
 namespace OBFS {
 
-class BogusCFG : public llvm::PassInfoMixin<BogusCFG> {
+class BogusControlFlow : public llvm::PassInfoMixin<BogusControlFlow> {
 public:
   llvm::PreservedAnalyses run(llvm::Function &F,
                               llvm::FunctionAnalysisManager &AM);
 
-  bool bogusCFG(llvm::Function *f);
+  bool BogusCF(llvm::Function *f);
+
+  llvm::BasicBlock* createCloneBasicBlock(llvm::BasicBlock *BB);
+
+  llvm::Value* createBogusCmp(llvm::BasicBlock *insertAfter);
 
   // 使得该Pass在每次运行时都能被调用
   static bool isRequired() { return true; }
