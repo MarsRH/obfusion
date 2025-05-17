@@ -7,7 +7,7 @@ if (NOT WIN32 AND NOT CYGWIN)
   add_llvm_pass_plugin(libOBFS
     TestPass.cpp             # Pass 源文件
     Flattening.cpp           # Flattening 源文件
-    BogusCFG.cpp             # BogusCFG 源文件
+    BogusControlFlow.cpp     # BogusContorlFlow 源文件
 
     Registration.cpp         # 注册文件
   )
