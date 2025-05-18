@@ -1,7 +1,7 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "OBFS/TestPass.h"
 #include "OBFS/Flattening.h"
-#include "OBFS/Constant.h"
+#include "OBFS/ConstantEncrypt.h"
 
 using namespace llvm;
 
@@ -15,6 +15,16 @@ llvmGetPassPluginInfo() {
     "v1.0",
     [](PassBuilder &PB) {
       PB.registerPipelineParsingCallback(
+        [](StringRef Name, ModulePassManager &MPM,
+           ArrayRef<PassBuilder::PipelineElement>) {
+          // 常量混淆
+          if (Name == "const") {
+            MPM.addPass(OBFS::ConstantEncrypt());
+            return true;
+          }
+          return false;
+        });
+      PB.registerPipelineParsingCallback(
         [](StringRef Name, FunctionPassManager &FPM,
            ArrayRef<PassBuilder::PipelineElement>) {
           // 测试pass
@@ -25,11 +35,6 @@ llvmGetPassPluginInfo() {
           // 控制流平坦化
           if (Name == "flattening") {
             FPM.addPass(OBFS::Flattening());
-            return true;
-          }
-          // 常量混淆
-          if (Name == "const") {
-            FPM.addPass(OBFS::Constant());
             return true;
           }
           // Other passes go here.
