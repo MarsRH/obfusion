@@ -6,7 +6,7 @@ using std::vector;
 
 bool BogusControlFlow::BogusCF(Function *f) {
   
-  // 1. 收集所有基本块(跳过入口块、返回块和调用块)
+  // 收集所有基本块(跳过入口块、返回块和调用块)
   vector<BasicBlock*> blocks;
   BasicBlock &entryBB = f->getEntryBlock();
   for (BasicBlock &BB : *f) {
@@ -34,66 +34,53 @@ bool BogusControlFlow::BogusCF(Function *f) {
     blocks.push_back(&BB);
   }
 
-  errs() << "[BogusControlFlow] Collect BB ok\n";
+  errs() << "[BogusControlFlow] Collect BB " << blocks.size() << "\n";
 
   // 2. 为每个非入口基本块创建虚假分支
   for (BasicBlock *BB : blocks) {
 
-    // 创建不透明谓词 (这里使用简单实现)
-    // Value *predicate = ConstantInt::get(Type::getInt1Ty(f->getContext()), 1);
-    Value *bogusCmp = createBogusCmp(BB);
-    
-    errs() << "[BogusControlFlow] CreateBogusCMP ok\n";
-
-    // 随机选择一个基本块进行复制(确保blocks不为空)
-    if (blocks.empty()) continue;
-    BasicBlock *bogusBB = createCloneBasicBlock(blocks[rand() % blocks.size()]);
-    
-    errs() << "[BogusControlFlow] CopyBB ok\n";
-
-    // 清理复制块中的危险指令
-    // for (Instruction &I : *bogusBB) {
-    //   if (isa<CallInst>(&I) || isa<InvokeInst>(&I)) {
-    //     I.eraseFromParent();
-    //   }
-    // }
-    
-    // 确保最后是分支指令
-    // Instruction *term = bogusBB->getTerminator();
-    // if (!term) {
-    //   BranchInst::Create(BB, bogusBB);
-    // } else if (!isa<BranchInst>(term)) {
-    //   term->eraseFromParent();
-    //   BranchInst::Create(BB, bogusBB);
-    // }
-    
-    // 修改原基本块终止指令
+    // 获取原基本块终止指令
+    if (!BB->getTerminator()) continue;
     Instruction *origTerm = BB->getTerminator();
-    IRBuilder<> builder(origTerm->getContext());
-    builder.SetInsertPoint(origTerm);
-    
+
     if (BranchInst *br = dyn_cast<BranchInst>(origTerm)) {
-      if (br->isConditional()) {
-        // 对于条件分支，组合原条件和新谓词
-        Value *newCond = builder.CreateAnd(br->getCondition(), bogusCmp);
-        builder.CreateCondBr(newCond, br->getSuccessor(0), bogusBB);
-      } else {
-        // 无条件分支直接使用新谓词
+      errs() << "[BogusControlFlow] BranchInst\n";
+      // 仅处理无条件分支，使用不透明谓词
+      if (!br->isConditional()) {
+        errs() << "[BogusControlFlow] Not Conditional Br\n";
+        // 创建不透明谓词
+        IRBuilder<> builder(BB);
+        if (Instruction *term = BB->getTerminator()) {
+            builder.SetInsertPoint(term);
+        }
+        Value *bogusCmp = createBogusCmp(builder);
+        errs() << "[BogusControlFlow] CreateBogusCMP ok\n";
+        // 创建虚假分支 使用随机选择的基本块进行克隆
+        BasicBlock *bogusBB = createCloneBasicBlock(blocks[rand() % blocks.size()]);
+        errs() << "[BogusControlFlow] CopyBB ok\n";
+        // 创建条件分支
         builder.CreateCondBr(bogusCmp, bogusBB, br->getSuccessor(0));
+        origTerm->eraseFromParent();
       }
+      // 条件分支不做处理
     } 
     else if (SwitchInst *sw = dyn_cast<SwitchInst>(origTerm)) {
-      // 将Switch转换为条件分支
-      Value *switchCond = sw->getCondition();
-      BasicBlock *defaultBB = sw->getDefaultDest();
-      builder.CreateCondBr(bogusCmp, bogusBB, defaultBB);
+      // 为Switch添加不可达块
+      errs() << "[BogusControlFlow] SwitchInst\n";
+      BasicBlock *bogusBB = createCloneBasicBlock(blocks[rand() % blocks.size()]);
+      sw->addCase(ConstantInt::get(Type::getInt32Ty(f->getContext()), rand()), bogusBB);
     }
     else {
-      // 其他情况使用默认处理
+      // 其他情况使用默认处理 理论上不会到达该分支
+      errs() << "[BogusControlFlow] err branch\n";
+      IRBuilder<> builder(BB);
+      if (Instruction *term = BB->getTerminator()) {
+          builder.SetInsertPoint(term);
+      }
+      Value *bogusCmp = createBogusCmp(builder);
+      BasicBlock *bogusBB = createCloneBasicBlock(blocks[rand() % blocks.size()]);
       builder.CreateCondBr(bogusCmp, bogusBB, BB->getNextNode());
     }
-    
-    origTerm->eraseFromParent();
   }
 
   return true;
@@ -127,27 +114,36 @@ BasicBlock* BogusControlFlow::createCloneBasicBlock(BasicBlock *BB) {
     return cloneBB;
 }
 
-Value* BogusControlFlow::createBogusCmp(BasicBlock *insertAfter){
+Value* BogusControlFlow::createBogusCmp(IRBuilder<> &builder){
     // if((y < 10 || x * (x + 1) % 2 == 0))
     // 等价于 if(true)
-    Module *M = insertAfter->getModule();
-    InsertPosition *insertPos = new InsertPosition(insertAfter);
+    Module *M = builder.GetInsertBlock()->getModule();
     LLVMContext &Context = M->getContext();
-    GlobalVariable *xptr = new GlobalVariable(*M, Type::getInt32Ty(Context), false, GlobalValue::CommonLinkage, ConstantInt::get(Type::getInt32Ty(Context), 0), "x");
-    GlobalVariable *yptr = new GlobalVariable(*M, Type::getInt32Ty(Context), false, GlobalValue::CommonLinkage, ConstantInt::get(Type::getInt32Ty(Context), 0), "y");
-    LoadInst *x = new LoadInst(Type::getInt32Ty(Context), xptr, "", insertAfter);
-    LoadInst *y = new LoadInst(Type::getInt32Ty(Context), yptr, "", insertAfter);
-    ICmpInst *cond1 = new ICmpInst(*insertPos, CmpInst::ICMP_SLT, y, ConstantInt::get(Type::getInt32Ty(Context), 10));
-    BinaryOperator *op1 = BinaryOperator::CreateAdd(x, ConstantInt::get(Type::getInt32Ty(Context), 1), "", insertAfter);
-    BinaryOperator *op2 = BinaryOperator::CreateMul(op1, x, "", insertAfter);
-    BinaryOperator *op3 = BinaryOperator::CreateURem(op2, ConstantInt::get(Type::getInt32Ty(Context), 2), "", insertAfter);
-    ICmpInst *cond2 = new ICmpInst(*insertPos, CmpInst::ICMP_EQ, op3, ConstantInt::get(Type::getInt32Ty(Context), 0));
-    return BinaryOperator::CreateOr(cond1, cond2, "", insertAfter);
+    
+    GlobalVariable *xptr = new GlobalVariable(*M, Type::getInt32Ty(Context), false, 
+        GlobalValue::CommonLinkage, ConstantInt::get(Type::getInt32Ty(Context), 0), "x");
+    GlobalVariable *yptr = new GlobalVariable(*M, Type::getInt32Ty(Context), false, 
+        GlobalValue::CommonLinkage, ConstantInt::get(Type::getInt32Ty(Context), 0), "y");
+    
+    Value *x = builder.CreateLoad(Type::getInt32Ty(Context), xptr);
+    Value *y = builder.CreateLoad(Type::getInt32Ty(Context), yptr);
+    Value *cond1 = builder.CreateICmpSLT(y, ConstantInt::get(Type::getInt32Ty(Context), 10));
+    Value *op1 = builder.CreateAdd(x, ConstantInt::get(Type::getInt32Ty(Context), 1));
+    Value *op2 = builder.CreateMul(op1, x);
+    Value *op3 = builder.CreateURem(op2, ConstantInt::get(Type::getInt32Ty(Context), 2));
+    Value *cond2 = builder.CreateICmpEQ(op3, ConstantInt::get(Type::getInt32Ty(Context), 0));
+    return builder.CreateOr(cond1, cond2);
 }
 
 PreservedAnalyses BogusControlFlow::run(Function &F, FunctionAnalysisManager &AM) {
   errs() << "[BogusControlFlow] Pass running on " << F.getName() << "\n";
+  // DEBUG: 打印原始IR
+  errs() << "[BogusControlFlow] Original IR:\n";
+  F.print(errs());
   if (!F.isDeclaration() && BogusCF(&F)) {
+    // DEBUG: 打印最终IR
+    errs() << "[BogusControlFlow] IR:\n";
+    F.print(errs());
     return PreservedAnalyses::none();
   }
   return PreservedAnalyses::all();
