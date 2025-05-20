@@ -1,7 +1,9 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "OBFS/TestPass.h"
 #include "OBFS/Flattening.h"
+#include "OBFS/ConstantEncrypt.h"
 #include "OBFS/BogusControlFlow.h"
+
 
 using namespace llvm;
 
@@ -14,6 +16,16 @@ llvmGetPassPluginInfo() {
     "ObfusionPass",
     "v1.0",
     [](PassBuilder &PB) {
+      PB.registerPipelineParsingCallback(
+        [](StringRef Name, ModulePassManager &MPM,
+           ArrayRef<PassBuilder::PipelineElement>) {
+          // 常量混淆
+          if (Name == "const") {
+            MPM.addPass(OBFS::ConstantEncrypt());
+            return true;
+          }
+          return false;
+        });
       PB.registerPipelineParsingCallback(
         [](StringRef Name, FunctionPassManager &FPM,
            ArrayRef<PassBuilder::PipelineElement>) {
