@@ -8,6 +8,8 @@ if (NOT WIN32 AND NOT CYGWIN)
     CryptoUtils.cpp          # 加密工具类
     TestPass.cpp             # Pass 源文件
     Flattening.cpp           # Flattening 源文件
+    BogusControlFlow.cpp     # BogusContorlFlow 源文件
+
     Registration.cpp         # 注册文件
   )
 
