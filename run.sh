@@ -41,9 +41,9 @@ case "$mode" in
         clang -S -emit-llvm "-${optim_level}" "./programs/$input_file" -o "./programs/${base_name}.ll"
 
         # 调用PASS PLUGIN对目标IR进行优化并生成可执行文件
-        opt -load-pass-plugin ./build/lib/libOBFS.so -passes="${passes}" "./programs/${base_name}.ll" -o "./programs/${base_name}.bc"
+        opt -S -load-pass-plugin ./build/lib/libOBFS.so -passes="${passes}" "./programs/${base_name}.ll" -o "./programs/${base_name}_opt.ll"
         # llc -filetype=obj "./programs/${base_name}.bc" -o "./programs/${base_name}.o"
-        clang "./programs/${base_name}.bc" -o "./programs/${base_name}"
+        clang "./programs/${base_name}_opt.ll" -o "./programs/${base_name}"
 
         echo "Processing completed: ${base_name} executable generated"
         ;;
