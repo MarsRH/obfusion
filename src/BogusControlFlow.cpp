@@ -59,7 +59,7 @@ bool BogusControlFlow::BogusCF(Function *f) {
         BasicBlock *bogusBB = createCloneBasicBlock(blocks[rand() % blocks.size()]);
         errs() << "[BogusControlFlow] CopyBB ok\n";
         // 创建条件分支
-        builder.CreateCondBr(bogusCmp, bogusBB, br->getSuccessor(0));
+        builder.CreateCondBr(bogusCmp, br->getSuccessor(0), bogusBB);
         origTerm->eraseFromParent();
       }
       // 条件分支不做处理

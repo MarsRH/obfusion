@@ -105,7 +105,7 @@ void ConstantEncrypt::InsertArrayDecryption(Module &M, EncryptedGV encGV, LLVMCo
   BasicBlock *forCond = BasicBlock::Create(ctx, "for.cond", func);
   BasicBlock *forBody = BasicBlock::Create(ctx, "for.body", func);
   BasicBlock *forInc = BasicBlock::Create(ctx, "for.inc", func);
-  BasicBlock *forEnd = BasicBlock::Create(ctx, "for.inc", func);
+  BasicBlock *forEnd = BasicBlock::Create(ctx, "for.end", func);
  
   IRBuilder<> builder(ctx);
   Type *Int32Ty = builder.getInt32Ty();
@@ -193,6 +193,7 @@ PreservedAnalyses ConstantEncrypt::run(Module &M, ModuleAnalysisManager &AM) {
           Constant *enc = ConstantInt::get(intData->getType(),
                                               key ^ intData->getZExtValue());
           GV->setInitializer(enc);
+          GV->setConstant(false);
           InsertIntDecryption(M, {GV, key, 1LL}, ctx);
         }
       }
