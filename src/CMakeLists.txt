@@ -6,6 +6,7 @@ if (NOT WIN32 AND NOT CYGWIN)
   # 定义 Pass 插件（关键步骤）
   add_llvm_pass_plugin(libOBFS
     CryptoUtils.cpp          # 加密工具类
+    OpaquePredicates.cpp     # OpaquePredicate 源文件
     ConstantEncrypt.cpp      # Constant 源文件
     TestPass.cpp             # Pass 源文件
     Flattening.cpp           # Flattening 源文件
