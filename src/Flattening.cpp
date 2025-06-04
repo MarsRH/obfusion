@@ -1,14 +1,18 @@
 #include "OBFS/Flattening.h"
+#include "llvm/CryptoUtils.h"
 
 using namespace llvm;
 using namespace OBFS;
 using std::vector;
 
+#define DEBUG_TYPE "Flattening"
+
 PreservedAnalyses Flattening::run(Function &F, FunctionAnalysisManager &AM) {
-  errs() << "[Flattening] Pass running on " << F.getName() << "\n";
+  outs() << "\n" << "[Flattening] Pass running on " << F.getName() << "\n";
   // DEBUG: 打印原始IR
-  // errs() << "[Flattening] Original IR:\n";
-  // F.print(errs());
+  DEBUG_WITH_TYPE(DEBUG_TYPE, 
+    dbgs() << "[Flattening] Original IR:\n"; 
+    F.print(dbgs()););
 
   // 模块声明
   RegToMemPass *reg = new RegToMemPass();
@@ -27,12 +31,9 @@ PreservedAnalyses Flattening::run(Function &F, FunctionAnalysisManager &AM) {
 
 bool Flattening::flatten(Function *f) {
 
-  // 随机数种子
-  srand(time(0));
-  int randNumCase = rand();
+  int randNumCase = cryptoutils->get_uint32_t();
 
   // 获取函数的所有基本块
-  errs() << "[Flattening] Before processing basic blocks\n";
   vector<BasicBlock *> origBB;
   for (BasicBlock &BB : *f) {
     origBB.emplace_back(&BB);
@@ -41,6 +42,7 @@ bool Flattening::flatten(Function *f) {
       return false;
     }
   }
+  outs() << "[Flattening] Collected " << origBB.size() << " basic blocks\n";
 
   // 跳过只有一个基本块的函数
   if (origBB.size() <= 1) {
@@ -70,7 +72,7 @@ bool Flattening::flatten(Function *f) {
   entryBB.getTerminator()->eraseFromParent();
 
   // 创建主循环
-  errs() << "[Flattening] Before creating main loop structure\n";
+  // dbgs() << "[Flattening] Creating main loop structure\n";
   BasicBlock *loopEntry = BasicBlock::Create(f->getContext(), "loopEntry", f);
   BasicBlock *loopEnd = BasicBlock::Create(f->getContext(), "loopEnd", f);
   BasicBlock *swDefault = BasicBlock::Create(f->getContext(), "switchDefault", f);
@@ -100,11 +102,11 @@ bool Flattening::flatten(Function *f) {
   for (BasicBlock *bb : origBB) {
     bb->moveBefore(loopEnd);
     switchI->addCase(dispatchBuilder.getInt32(randNumCase), bb);
-    randNumCase = rand();
+    randNumCase = cryptoutils->get_uint32_t();
   }
 
   // 修改每个基本块的终止指令
-  errs() << "[Flattening] Before modifying terminators\n";
+  // dbgs() << "[Flattening] Modifying terminators\n";
   for (BasicBlock *bb : origBB) {
     if (!bb->getTerminator()) continue;
 
@@ -116,12 +118,12 @@ bool Flattening::flatten(Function *f) {
 
         if (numCaseTrue == nullptr) {
           numCaseTrue = dispatchBuilder.getInt32(randNumCase);
-          randNumCase = rand();
+          randNumCase = cryptoutils->get_uint32_t();
         }
 
         if (numCaseFalse == nullptr) {
           numCaseFalse = dispatchBuilder.getInt32(randNumCase);
-          randNumCase = rand();
+          randNumCase = cryptoutils->get_uint32_t();
         }
 
         
@@ -142,7 +144,7 @@ bool Flattening::flatten(Function *f) {
         ConstantInt *numCase = switchI->findCaseDest(succ);
         if (numCase == nullptr) {
           numCase = dispatchBuilder.getInt32(randNumCase);
-          randNumCase = rand();
+          randNumCase = cryptoutils->get_uint32_t();
         }
 
         // 更新switch变量并跳转到循环结束
@@ -154,10 +156,15 @@ bool Flattening::flatten(Function *f) {
   }
 
   // DEBUG: 打印最终的IR
-  // errs() << "[Flattening] Final IR After Flattening:\n";
-  // f->print(errs());
+  DEBUG_WITH_TYPE(DEBUG_TYPE, 
+    dbgs() << "[Flattening] Final IR After Flattening:\n"; 
+    f->print(dbgs()););
   
-  errs() << "[Flattening] Flattening Done\n";
+  outs() << "[Flattening] Flattening Done\n";
 
   return true;
+}
+
+Flattening::Flattening() {
+  outs() << "[Flattening] Initialized" << "\n";
 }
