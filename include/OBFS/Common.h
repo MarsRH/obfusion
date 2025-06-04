@@ -5,8 +5,10 @@
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/IR/Function.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/ErrorHandling.h"
 
 #include <vector>
+#include <cctype>
 
 // 公共命名空间
 namespace OBFS {
@@ -15,13 +17,5 @@ namespace OBFS {
 inline void printFunctionName(llvm::Function &F) {
   llvm::errs() << "Processing function: " << F.getName() << "\n";
 }
-
-#define LOAD32H(x, y)                                                          \
-  {                                                                            \
-    (x) = ((uint32_t)((y)[0] & 0xFF) << 24) |                                  \
-          ((uint32_t)((y)[1] & 0xFF) << 16) |                                  \
-          ((uint32_t)((y)[2] & 0xFF) << 8) | ((uint32_t)((y)[3] & 0xFF) << 0); \
-  }
-
 
 } // namespace OBFS
