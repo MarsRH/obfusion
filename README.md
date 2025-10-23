@@ -350,7 +350,7 @@ PreservedAnalyses MyPass::run(Function &F, FunctionAnalysisManager &AM) {
 
 - 项目主页：https://github.com/MarsRH/obfusion
 - 问题反馈：https://github.com/MarsRH/obfusion/issues
-- 邮箱：your.email@example.com
+- 邮箱：Elysia_awa@outlook.com
 
 ---
 
